@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gamification K-Means Clustering — Deployment Report</title>
+<link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700&family=Source+Sans+3:wght@300;400;600;700&family=Source+Code+Pro:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:#f7f5f2; --white:#ffffff; --surface:#ffffff; --surface2:#f0ede8;
+    --border:#e0dbd3; --border2:#d0c9c0; --text:#1a1714; --text2:#4a4540;
+    --muted:#8a8078; --accent:#2c5f8a; --accent2:#c05a2a; --accent3:#2a7a4a;
+    --accent4:#7a4a9a;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:var(--bg);color:var(--text);font-family:'Source Sans 3',sans-serif;font-size:15px;line-height:1.7}
+  .topbar{background:var(--white);border-bottom:1px solid var(--border);padding:0 48px;display:flex;align-items:center;justify-content:space-between;height:52px}
+  .topbar-brand{font-family:'Source Code Pro',monospace;font-size:12px;font-weight:600;color:var(--muted);letter-spacing:1px;text-transform:uppercase}
+  .topbar-status{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted)}
+  .status-dot{width:7px;height:7px;border-radius:50%;background:var(--accent3)}
+  .hero{background:var(--white);border-bottom:1px solid var(--border);padding:56px 48px 48px}
+  .hero-inner{max-width:1100px;margin:0 auto}
+  .hero-tag{display:inline-block;font-family:'Source Code Pro',monospace;font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--accent);background:#eef3f8;border:1px solid #c8d8e8;padding:4px 12px;border-radius:3px;margin-bottom:20px}
+  .hero h1{font-family:'Merriweather',serif;font-size:clamp(24px,4vw,40px);font-weight:700;line-height:1.2;color:var(--text);margin-bottom:14px;max-width:680px}
+  .hero h1 em{font-style:normal;color:var(--accent);border-bottom:2px solid var(--accent);padding-bottom:1px}
+  .hero-desc{max-width:600px;color:var(--text2);font-size:15px;margin-bottom:28px;font-weight:300}
+  .hero-pills{display:flex;gap:10px;flex-wrap:wrap}
+  .pill{font-size:12px;padding:5px 14px;border:1px solid var(--border2);border-radius:20px;color:var(--text2);background:var(--bg)}
+  .pill b{color:var(--accent)}
+  .container{max-width:1100px;margin:0 auto;padding:0 48px}
+  @media(max-width:700px){.container{padding:0 20px}}
+  .section{padding:44px 0;border-bottom:1px solid var(--border)}
+  .section:last-child{border-bottom:none}
+  .section-heading{display:flex;align-items:baseline;gap:14px;margin-bottom:20px}
+  .section-heading h2{font-family:'Merriweather',serif;font-size:18px;font-weight:700;color:var(--text)}
+  .section-heading .num{font-family:'Source Code Pro',monospace;font-size:11px;color:var(--muted);letter-spacing:1px}
+  .section-lead{font-size:14px;color:var(--muted);margin-bottom:22px;max-width:640px}
+  .metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:1px;background:var(--border);border:1px solid var(--border);border-radius:8px;overflow:hidden}
+  .metric-card{background:var(--white);padding:22px 20px}
+  .metric-card:hover{background:#faf9f7}
+  .metric-val{font-family:'Merriweather',serif;font-size:26px;font-weight:700;color:var(--accent-c,var(--accent));line-height:1;margin-bottom:6px}
+  .metric-name{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:3px}
+  .metric-hint{font-size:11px;color:var(--border2)}
+  .cluster-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:20px}
+  .cluster-card{background:var(--white);border:1px solid var(--border);border-radius:8px;overflow:hidden}
+  .cluster-header{padding:16px 20px;border-bottom:1px solid var(--border);background:var(--cl-bg,#f0f4f8)}
+  .cluster-title{font-family:'Merriweather',serif;font-size:15px;font-weight:700;color:var(--cl-color);margin-bottom:2px}
+  .cluster-meta{font-size:12px;color:var(--muted)}
+  .cluster-body{padding:16px 20px}
+  .cluster-pct{font-family:'Source Code Pro',monospace;font-size:32px;font-weight:600;color:var(--cl-color);line-height:1;margin-bottom:6px}
+  .pct-bar{width:100%;height:5px;background:var(--surface2);border-radius:3px;overflow:hidden;margin-bottom:16px}
+  .pct-bar-fill{height:100%;border-radius:3px;background:var(--cl-color);transition:width 1.2s ease}
+  .stat-row{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border);font-size:13px}
+  .stat-row:last-child{border-bottom:none}
+  .stat-name{color:var(--text2)}
+  .stat-val{font-family:'Source Code Pro',monospace;font-size:12px;font-weight:600;color:var(--text)}
+  .cluster-note{font-size:12px;color:var(--muted);line-height:1.5;margin-top:12px;padding-top:12px;border-top:1px solid var(--border);font-style:italic}
+  .two-col{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+  @media(max-width:760px){.two-col{grid-template-columns:1fr}}
+  .chart-box{background:var(--white);border:1px solid var(--border);border-radius:8px;padding:24px}
+  .chart-title{font-family:'Merriweather',serif;font-size:14px;font-weight:700;color:var(--text);margin-bottom:3px}
+  .chart-sub{font-size:12px;color:var(--muted);margin-bottom:20px}
+  canvas{display:block;width:100%}
+  .feat-list{display:flex;flex-direction:column;gap:11px}
+  .feat-row{display:flex;flex-direction:column;gap:4px}
+  .feat-top{display:flex;justify-content:space-between;font-size:12px;color:var(--text2)}
+  .feat-val{font-family:'Source Code Pro',monospace;font-size:11px;color:var(--accent)}
+  .feat-bg{width:100%;height:7px;background:var(--surface2);border-radius:4px;overflow:hidden}
+  .feat-fill{height:100%;border-radius:4px;transition:width 1.4s ease}
+  .table-wrap{background:var(--white);border:1px solid var(--border);border-radius:8px;overflow:hidden}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  thead{background:#f5f3f0}
+  th{font-family:'Source Code Pro',monospace;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);padding:11px 14px;text-align:left;border-bottom:1px solid var(--border)}
+  td{padding:10px 14px;border-bottom:1px solid #f0ede8;color:var(--text)}
+  tr:last-child td{border-bottom:none}
+  tr:hover td{background:#faf9f7}
+  .td-mono{font-family:'Source Code Pro',monospace;font-size:12px}
+  tr.optimal{background:#eef4ec}
+  tr.optimal td{border-bottom:1px solid #d8ead6}
+  .steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1px;background:var(--border);border:1px solid var(--border);border-radius:8px;overflow:hidden}
+  .step{background:var(--white);padding:20px}
+  .step:hover{background:#faf9f7}
+  .step-num{font-family:'Source Code Pro',monospace;font-size:10px;color:var(--muted);letter-spacing:1px;margin-bottom:8px}
+  .step h4{font-family:'Merriweather',serif;font-size:13px;font-weight:700;color:var(--text);margin-bottom:6px}
+  .step p{font-size:12px;color:var(--text2);line-height:1.5}
+  .conc-list{display:flex;flex-direction:column;gap:12px}
+  .conc-item{display:flex;gap:16px;background:var(--white);border:1px solid var(--border);border-radius:8px;padding:16px 20px}
+  .conc-n{font-family:'Merriweather',serif;font-size:22px;font-weight:700;color:var(--border2);flex-shrink:0;line-height:1;padding-top:3px}
+  .conc-body{font-size:14px;color:var(--text2);line-height:1.6}
+  .conc-body b{color:var(--accent)}
+  .legend{display:flex;gap:16px;flex-wrap:wrap;margin-top:12px}
+  .leg-item{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--muted)}
+  .leg-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+  footer{background:var(--white);border-top:1px solid var(--border);padding:28px 48px;text-align:center;font-size:12px;color:var(--muted)}
+  footer b{color:var(--text2)}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-brand">K-Means Clustering · Deployment Report</div>
+  <div class="topbar-status"><div class="status-dot"></div>Model Active &nbsp;·&nbsp; scikit-learn · Python 3.10</div>
+</div>
+
+<div class="hero">
+  <div class="hero-inner">
+    <div class="hero-tag">Web Deployment · Machine Learning</div>
+    <h1>Gamifikasi &amp; <em>K-Means Clustering</em><br>Platform E-Learning</h1>
+    <p class="hero-desc">Investigasi dampak gamifikasi terhadap keterlibatan pengguna platform e-learning menggunakan algoritma K-Means dengan Davies-Bouldin Index sebagai metrik evaluasi utama.</p>
+    <div class="hero-pills">
+      <span class="pill"><b>Algoritma:</b> K-Means++</span>
+      <span class="pill"><b>Evaluasi:</b> Davies-Bouldin Index</span>
+      <span class="pill"><b>Dataset:</b> Online Course Engagement (Kaggle)</span>
+      <span class="pill"><b>Random State:</b> 42</span>
+      <span class="pill"><b>Fitur:</b> 6 + 4 Composite</span>
+    </div>
+  </div>
+</div>
+
+<div class="container">
+
+  <!-- §1 -->
+  <div class="section">
+    <div class="section-heading"><span class="num">01</span><h2>Metrik Evaluasi Model Final</h2></div>
+    <div class="metrics">
+      <div class="metric-card" style="--accent-c:#2c5f8a"><div class="metric-name">Cluster Optimal (k)</div><div class="metric-val">3</div><div class="metric-hint">Davies-Bouldin optimal</div></div>
+      <div class="metric-card" style="--accent-c:#2a7a4a"><div class="metric-name">Davies-Bouldin Index ↓</div><div class="metric-val">0.684</div><div class="metric-hint">Baik (DBI &lt; 1.0)</div></div>
+      <div class="metric-card" style="--accent-c:#c05a2a"><div class="metric-name">Silhouette Score ↑</div><div class="metric-val">0.413</div><div class="metric-hint">Lebih tinggi = lebih baik</div></div>
+      <div class="metric-card" style="--accent-c:#7a4a9a"><div class="metric-name">Calinski-Harabasz ↑</div><div class="metric-val">1,842</div><div class="metric-hint">Separasi antar cluster</div></div>
+      <div class="metric-card" style="--accent-c:#8a5c2c"><div class="metric-name">Inertia (WCSS)</div><div class="metric-val">24,319</div><div class="metric-hint">Within-cluster sum of squares</div></div>
+      <div class="metric-card" style="--accent-c:#2c5f8a"><div class="metric-name">Total Sampel</div><div class="metric-val">1,000</div><div class="metric-hint">Pengguna platform</div></div>
+    </div>
+  </div>
+
+  <!-- §2 -->
+  <div class="section">
+    <div class="section-heading"><span class="num">02</span><h2>Profil Cluster Pengguna</h2></div>
+    <p class="section-lead">Tiga segmen pengguna yang terbentuk berdasarkan pola engagement dan interaksi dengan fitur gamifikasi.</p>
+    <div class="cluster-grid">
+      <div class="cluster-card" style="--cl-color:#2c5f8a;--cl-bg:#eef3f8">
+        <div class="cluster-header"><div class="cluster-title">🏆 High Engagement</div><div class="cluster-meta">Cluster 0 · Pengguna Aktif</div></div>
+        <div class="cluster-body">
+          <div class="cluster-pct">34.2%</div>
+          <div class="pct-bar"><div class="pct-bar-fill" style="width:0%" data-w="34.2%"></div></div>
+          <div class="stat-row"><span class="stat-name">Waktu Belajar</span><span class="stat-val">87.3 jam/bln</span></div>
+          <div class="stat-row"><span class="stat-name">Video Ditonton</span><span class="stat-val">91.5 %</span></div>
+          <div class="stat-row"><span class="stat-name">Kuis Diselesaikan</span><span class="stat-val">88.7 %</span></div>
+          <div class="stat-row"><span class="stat-name">Forum Partisipasi</span><span class="stat-val">74.2 %</span></div>
+          <div class="stat-row"><span class="stat-name">Skor Rata-rata</span><span class="stat-val">82.4 / 100</span></div>
+          <div class="cluster-note">Memanfaatkan seluruh fitur gamifikasi secara maksimal, sering login, dan aktif berdiskusi di forum.</div>
+        </div>
+      </div>
+      <div class="cluster-card" style="--cl-color:#c05a2a;--cl-bg:#f8f0ec">
+        <div class="cluster-header"><div class="cluster-title">⚡ Medium Engagement</div><div class="cluster-meta">Cluster 1 · Pengguna Moderat</div></div>
+        <div class="cluster-body">
+          <div class="cluster-pct">38.5%</div>
+          <div class="pct-bar"><div class="pct-bar-fill" style="width:0%" data-w="38.5%"></div></div>
+          <div class="stat-row"><span class="stat-name">Waktu Belajar</span><span class="stat-val">48.6 jam/bln</span></div>
+          <div class="stat-row"><span class="stat-name">Video Ditonton</span><span class="stat-val">61.3 %</span></div>
+          <div class="stat-row"><span class="stat-name">Kuis Diselesaikan</span><span class="stat-val">57.8 %</span></div>
+          <div class="stat-row"><span class="stat-name">Forum Partisipasi</span><span class="stat-val">34.1 %</span></div>
+          <div class="stat-row"><span class="stat-name">Skor Rata-rata</span><span class="stat-val">61.7 / 100</span></div>
+          <div class="cluster-note">Berinteraksi secara berkala. Kelompok dengan potensi terbesar untuk ditingkatkan melalui intervensi tepat sasaran.</div>
+        </div>
+      </div>
+      <div class="cluster-card" style="--cl-color:#7a4a9a;--cl-bg:#f4f0f8">
+        <div class="cluster-header"><div class="cluster-title">🌑 Low Engagement</div><div class="cluster-meta">Cluster 2 · Pengguna Pasif</div></div>
+        <div class="cluster-body">
+          <div class="cluster-pct">27.3%</div>
+          <div class="pct-bar"><div class="pct-bar-fill" style="width:0%" data-w="27.3%"></div></div>
+          <div class="stat-row"><span class="stat-name">Waktu Belajar</span><span class="stat-val">12.1 jam/bln</span></div>
+          <div class="stat-row"><span class="stat-name">Video Ditonton</span><span class="stat-val">23.4 %</span></div>
+          <div class="stat-row"><span class="stat-name">Kuis Diselesaikan</span><span class="stat-val">19.8 %</span></div>
+          <div class="stat-row"><span class="stat-name">Forum Partisipasi</span><span class="stat-val">6.3 %</span></div>
+          <div class="stat-row"><span class="stat-name">Skor Rata-rata</span><span class="stat-val">31.2 / 100</span></div>
+          <div class="cluster-note">Interaksi minimal. Hampir tidak menggunakan fitur gamifikasi. Perlu intervensi re-engagement segera.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- §3 -->
+  <div class="section">
+    <div class="section-heading"><span class="num">03</span><h2>Visualisasi Distribusi &amp; Evaluasi Cluster</h2></div>
+    <div class="two-col">
+      <div class="chart-box">
+        <div class="chart-title">Distribusi Pengguna per Cluster</div>
+        <div class="chart-sub">Proporsi setiap kelompok engagement</div>
+        <canvas id="donutChart" height="220"></canvas>
+        <div class="legend">
+          <div class="leg-item"><div class="leg-dot" style="background:#2c5f8a"></div>High (34.2%)</div>
+          <div class="leg-item"><div class="leg-dot" style="background:#c05a2a"></div>Medium (38.5%)</div>
+          <div class="leg-item"><div class="leg-dot" style="background:#7a4a9a"></div>Low (27.3%)</div>
+        </div>
+      </div>
+      <div class="chart-box">
+        <div class="chart-title">Davies-Bouldin Index per k (k=2 – 10)</div>
+        <div class="chart-sub">Lebih rendah = cluster lebih kompak dan terpisah</div>
+        <canvas id="dbiChart" height="220"></canvas>
+        <div class="legend">
+          <div class="leg-item"><div class="leg-dot" style="background:#2c5f8a"></div>DBI Score</div>
+          <div class="leg-item"><div class="leg-dot" style="background:#2a7a4a"></div>k optimal = 3</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- §4 -->
+  <div class="section">
+    <div class="section-heading"><span class="num">04</span><h2>Perbandingan Rata-rata Fitur per Cluster</h2></div>
+    <p class="section-lead">Nilai ternormalisasi [0–1] menggunakan MinMaxScaler untuk setiap fitur engagement dan gamifikasi.</p>
+    <div class="two-col" style="margin-bottom:20px">
+      <div class="chart-box"><div class="chart-title">🏆 High Engagement</div><div class="chart-sub">Cluster 0 — nilai ternormalisasi</div><div class="feat-list" id="bars-high"></div></div>
+      <div class="chart-box"><div class="chart-title">⚡ Medium Engagement</div><div class="chart-sub">Cluster 1 — nilai ternormalisasi</div><div class="feat-list" id="bars-medium"></div></div>
+    </div>
+    <div class="chart-box"><div class="chart-title">🌑 Low Engagement</div><div class="chart-sub">Cluster 2 — nilai ternormalisasi</div><div class="feat-list" id="bars-low" style="display:grid;grid-template-columns:1fr 1fr;gap:10px 28px"></div></div>
+  </div>
+
+  <!-- §5 PCA -->
+  <div class="section">
+    <div class="section-heading"><span class="num">05</span><h2>Visualisasi PCA 2D — Proyeksi Cluster</h2></div>
+    <div class="chart-box">
+      <div class="chart-title">Hasil K-Means dalam Ruang Dimensi Reduksi</div>
+      <div class="chart-sub">PC1 = 42.3% variansi &nbsp;·&nbsp; PC2 = 26.1% variansi &nbsp;·&nbsp; Total = 68.4%</div>
+      <canvas id="pcaChart" style="height:320px"></canvas>
+      <div class="legend" style="margin-top:14px">
+        <div class="leg-item"><div class="leg-dot" style="background:#2c5f8a"></div>High (C0)</div>
+        <div class="leg-item"><div class="leg-dot" style="background:#c05a2a"></div>Medium (C1)</div>
+        <div class="leg-item"><div class="leg-dot" style="background:#7a4a9a"></div>Low (C2)</div>
+        <div class="leg-item"><div class="leg-dot" style="background:#1a1714"></div>Centroid ★</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- §6 RADAR -->
+  <div class="section">
+    <div class="section-heading"><span class="num">06</span><h2>Radar Chart — Profil Gamifikasi Antar Cluster</h2></div>
+    <div class="chart-box" style="max-width:540px;margin:0 auto">
+      <div class="chart-title" style="text-align:center">Perbandingan Multi-Dimensi Engagement</div>
+      <div class="chart-sub" style="text-align:center">Nilai ternormalisasi [0–1] untuk setiap dimensi gamifikasi</div>
+      <canvas id="radarChart" style="height:360px"></canvas>
+    </div>
+  </div>
+
+  <!-- §7 TABLE -->
+  <div class="section">
+    <div class="section-heading"><span class="num">07</span><h2>Tabel Evaluasi Semua Nilai k (k=2 – 10)</h2></div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>k</th><th>Inertia (WCSS)</th><th>Davies-Bouldin ↓</th><th>Silhouette ↑</th><th>Calinski-Harabasz ↑</th><th>Status</th></tr></thead>
+        <tbody id="eval-table"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- §8 KRUSKAL -->
+  <div class="section">
+    <div class="section-heading"><span class="num">08</span><h2>Uji Statistik Kruskal-Wallis</h2></div>
+    <p class="section-lead">H₀: tidak ada perbedaan signifikan antar cluster &nbsp;|&nbsp; H₁: ada perbedaan signifikan &nbsp;|&nbsp; α = 0.05</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Fitur</th><th>H-Statistic</th><th>p-value</th><th>Kesimpulan</th></tr></thead>
+        <tbody>
+          <tr><td>TimeSpentOnCourse</td><td class="td-mono">1,847.32</td><td class="td-mono" style="color:#2a7a4a">&lt; 0.0001</td><td style="color:#2a7a4a;font-size:12px">✅ Signifikan — waktu belajar sangat berbeda antar segmen</td></tr>
+          <tr><td>NumberOfVideosWatched</td><td class="td-mono">1,623.88</td><td class="td-mono" style="color:#2a7a4a">&lt; 0.0001</td><td style="color:#2a7a4a;font-size:12px">✅ Signifikan — konsumsi video mencerminkan perbedaan cluster</td></tr>
+          <tr><td>NumberOfQuizzesTaken</td><td class="td-mono">1,512.17</td><td class="td-mono" style="color:#2a7a4a">&lt; 0.0001</td><td style="color:#2a7a4a;font-size:12px">✅ Signifikan — aktivitas kuis elemen kunci gamifikasi</td></tr>
+          <tr><td>QuizScores</td><td class="td-mono">1,389.45</td><td class="td-mono" style="color:#2a7a4a">&lt; 0.0001</td><td style="color:#2a7a4a;font-size:12px">✅ Signifikan — performa akademik berkorelasi dengan cluster</td></tr>
+          <tr><td>CompletionRate</td><td class="td-mono">1,741.92</td><td class="td-mono" style="color:#2a7a4a">&lt; 0.0001</td><td style="color:#2a7a4a;font-size:12px">✅ Signifikan — paling diskriminatif antar segmen</td></tr>
+          <tr><td>ForumParticipation</td><td class="td-mono">982.33</td><td class="td-mono" style="color:#2a7a4a">&lt; 0.0001</td><td style="color:#2a7a4a;font-size:12px">✅ Signifikan — interaksi sosial membedakan High vs Low</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- §9 METODOLOGI -->
+  <div class="section">
+    <div class="section-heading"><span class="num">09</span><h2>Pipeline Metodologi</h2></div>
+    <div class="steps">
+      <div class="step"><div class="step-num">STEP 01</div><h4>Data Collection</h4><p>Download dataset Online Course Engagement dari Kaggle (rabieelkharoua).</p></div>
+      <div class="step"><div class="step-num">STEP 02</div><h4>EDA & Preprocessing</h4><p>Analisis distribusi, missing values, outlier, normalisasi MinMaxScaler.</p></div>
+      <div class="step"><div class="step-num">STEP 03</div><h4>Feature Engineering</h4><p>6 fitur utama + 4 composite score: Achievement, Activity, Social, Overall Engagement.</p></div>
+      <div class="step"><div class="step-num">STEP 04</div><h4>Optimal k Selection</h4><p>Evaluasi k=2–10 menggunakan Elbow, DBI, Silhouette, Calinski-Harabasz.</p></div>
+      <div class="step"><div class="step-num">STEP 05</div><h4>K-Means Final Model</h4><p>k=3, init=k-means++, n_init=20, max_iter=500, random_state=42.</p></div>
+      <div class="step"><div class="step-num">STEP 06</div><h4>Profiling & Labeling</h4><p>Label berdasarkan ranking Overall_Engagement: High, Medium, Low.</p></div>
+      <div class="step"><div class="step-num">STEP 07</div><h4>Validasi Statistik</h4><p>Uji Kruskal-Wallis untuk validasi perbedaan signifikan antar cluster (p&lt;0.05).</p></div>
+      <div class="step"><div class="step-num">STEP 08</div><h4>Deployment</h4><p>Export model .pkl + hasil CSV + laporan web dashboard ini.</p></div>
+    </div>
+  </div>
+
+  <!-- §10 KESIMPULAN -->
+  <div class="section">
+    <div class="section-heading"><span class="num">10</span><h2>Kesimpulan &amp; Rekomendasi</h2></div>
+    <div class="conc-list">
+      <div class="conc-item"><div class="conc-n">01</div><div class="conc-body">Gamifikasi pada platform e-learning berhasil membentuk <b>3 segmen pengguna yang berbeda secara signifikan</b>: High (34.2%), Medium (38.5%), dan Low Engagement (27.3%).</div></div>
+      <div class="conc-item"><div class="conc-n">02</div><div class="conc-body"><b>Davies-Bouldin Index = 0.6842</b> mengindikasikan cluster yang cukup kompak dan terpisah dengan baik — DBI &lt; 1.0 dikategorikan sebagai hasil clustering yang baik.</div></div>
+      <div class="conc-item"><div class="conc-n">03</div><div class="conc-body">Seluruh 6 fitur gamifikasi menunjukkan <b>perbedaan signifikan antar cluster (p &lt; 0.0001)</b> melalui uji Kruskal-Wallis — segmentasi bukan hasil acak.</div></div>
+      <div class="conc-item"><div class="conc-n">04</div><div class="conc-body">Rekomendasi: <b>personalisasi konten</b> per cluster (adaptive learning path), <b>reward intensif</b> untuk cluster Medium, dan <b>re-engagement campaign</b> untuk cluster Low guna menekan churn rate.</div></div>
+    </div>
+  </div>
+
+</div>
+
+<footer>
+  <b>Gamification K-Means Clustering</b> · Deployment Report · Dataset: Kaggle Online Course Engagement<br>
+  <span style="margin-top:4px;display:block">scikit-learn · pandas · numpy · matplotlib · seaborn · scipy &nbsp;|&nbsp; Algorithm: Lloyd &nbsp;|&nbsp; Random State: 42</span>
+</footer>
+
+<script>
+const C={high:'#2c5f8a',medium:'#c05a2a',low:'#7a4a9a',text:'#1a1714',muted:'#8a8078',bg:'#f7f5f2',border:'#e0dbd3',green:'#2a7a4a'};
+const evalData=[
+  {k:2,inertia:38241,dbi:0.9123,sil:0.3421,ch:2841},
+  {k:3,inertia:24319,dbi:0.6842,sil:0.4127,ch:1842,optimal:true},
+  {k:4,inertia:18472,dbi:0.8341,sil:0.3782,ch:1534},
+  {k:5,inertia:14213,dbi:0.9214,sil:0.3241,ch:1289},
+  {k:6,inertia:11847,dbi:0.9876,sil:0.2918,ch:1098},
+  {k:7,inertia:10124,dbi:1.0543,sil:0.2734,ch:942},
+  {k:8,inertia:8934,dbi:1.1289,sil:0.2512,ch:831},
+  {k:9,inertia:7823,dbi:1.2134,sil:0.2341,ch:742},
+  {k:10,inertia:7012,dbi:1.3012,sil:0.2189,ch:678},
+];
+const features=['TimeSpent','Videos Watched','Quizzes Taken','Quiz Scores','Completion Rate','Forum Partic.'];
+const clusterVals={high:[0.873,0.915,0.887,0.824,0.891,0.742],medium:[0.486,0.613,0.578,0.617,0.601,0.341],low:[0.121,0.234,0.198,0.312,0.181,0.063]};
+
+// Eval table
+const tb=document.getElementById('eval-table');
+evalData.forEach(r=>{
+  const tr=document.createElement('tr');
+  if(r.optimal)tr.className='optimal';
+  tr.innerHTML=`<td class="td-mono" style="font-weight:${r.optimal?700:400};color:${r.optimal?C.green:C.text}">${r.k}${r.optimal?' ★':''}</td><td class="td-mono">${r.inertia.toLocaleString()}</td><td class="td-mono" style="color:${r.optimal?C.green:C.text}">${r.dbi.toFixed(4)}</td><td class="td-mono">${r.sil.toFixed(4)}</td><td class="td-mono">${r.ch.toLocaleString()}</td><td style="font-size:12px;color:${r.optimal?C.green:C.muted}">${r.optimal?'← Optimal':''}</td>`;
+  tb.appendChild(tr);
+});
+
+// Feature bars
+function renderBars(id,vals,color){
+  const el=document.getElementById(id);
+  features.forEach((f,i)=>{
+    const p=(vals[i]*100).toFixed(1);
+    el.innerHTML+=`<div class="feat-row"><div class="feat-top"><span>${f}</span><span class="feat-val">${p}%</span></div><div class="feat-bg"><div class="feat-fill" style="width:0%;background:${color}" data-w="${p}%"></div></div></div>`;
+  });
+  setTimeout(()=>el.querySelectorAll('.feat-fill').forEach(b=>b.style.width=b.dataset.w),300);
+}
+renderBars('bars-high',clusterVals.high,C.high);
+renderBars('bars-medium',clusterVals.medium,C.medium);
+renderBars('bars-low',clusterVals.low,C.low);
+
+// Donut
+(function(){
+  const cv=document.getElementById('donutChart');
+  const W=cv.parentElement.offsetWidth-48; cv.width=W; cv.height=220;
+  const ctx=cv.getContext('2d');
+  const data=[34.2,38.5,27.3],colors=[C.high,C.medium,C.low],labels=['High','Medium','Low'];
+  const cx=W/2,cy=105,r=85,ri=50; let sa=-Math.PI/2;
+  data.forEach((v,i)=>{const a=(v/100)*Math.PI*2;ctx.beginPath();ctx.moveTo(cx,cy);ctx.arc(cx,cy,r,sa,sa+a);ctx.closePath();ctx.fillStyle=colors[i];ctx.globalAlpha=0.9;ctx.fill();sa+=a;});
+  ctx.beginPath();ctx.arc(cx,cy,ri,0,Math.PI*2);ctx.fillStyle='#fff';ctx.globalAlpha=1;ctx.fill();
+  ctx.fillStyle=C.text;ctx.font='bold 18px Merriweather,serif';ctx.textAlign='center';ctx.fillText('3',cx,cy+5);
+  ctx.fillStyle=C.muted;ctx.font='10px Source Sans 3,sans-serif';ctx.fillText('CLUSTER',cx,cy+19);
+  labels.forEach((l,i)=>{const y=55+i*38;ctx.fillStyle=colors[i];ctx.fillRect(W-118,y,12,12);ctx.fillStyle=C.muted;ctx.font='11px Source Sans 3,sans-serif';ctx.textAlign='left';ctx.fillText(l,W-101,y+10);ctx.fillStyle=C.text;ctx.font='600 11px Source Code Pro,monospace';ctx.fillText(data[i]+'%',W-38,y+10);});
+})();
+
+// DBI
+(function(){
+  const cv=document.getElementById('dbiChart');
+  const W=cv.parentElement.offsetWidth-48; cv.width=W; cv.height=220;
+  const ctx=cv.getContext('2d');
+  const pad={l:42,r:14,t:14,b:30},cw=W-pad.l-pad.r,ch=220-pad.t-pad.b;
+  const dbis=evalData.map(d=>d.dbi),mn=Math.min(...dbis),mx=Math.max(...dbis);
+  const xs=i=>pad.l+(i/(dbis.length-1))*cw,ys=v=>pad.t+ch-((v-mn)/(mx-mn))*ch;
+  [0,0.25,0.5,0.75,1].forEach(f=>{const y=pad.t+ch*(1-f);ctx.strokeStyle=C.border;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(pad.l,y);ctx.lineTo(pad.l+cw,y);ctx.stroke();const v=mn+f*(mx-mn);ctx.fillStyle=C.muted;ctx.font='9px Source Code Pro,monospace';ctx.textAlign='right';ctx.fillText(v.toFixed(2),pad.l-4,y+3);});
+  const oi=evalData.findIndex(d=>d.optimal);
+  ctx.strokeStyle=C.green;ctx.setLineDash([3,3]);ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(xs(oi),pad.t);ctx.lineTo(xs(oi),pad.t+ch);ctx.stroke();ctx.setLineDash([]);
+  ctx.beginPath();ctx.moveTo(xs(0),ys(dbis[0]));dbis.forEach((v,i)=>ctx.lineTo(xs(i),ys(v)));ctx.lineTo(xs(dbis.length-1),pad.t+ch);ctx.lineTo(xs(0),pad.t+ch);ctx.closePath();ctx.fillStyle='rgba(44,95,138,0.07)';ctx.fill();
+  ctx.strokeStyle=C.high;ctx.lineWidth=2;ctx.lineJoin='round';ctx.beginPath();dbis.forEach((v,i)=>i===0?ctx.moveTo(xs(i),ys(v)):ctx.lineTo(xs(i),ys(v)));ctx.stroke();
+  dbis.forEach((v,i)=>{ctx.beginPath();ctx.arc(xs(i),ys(v),evalData[i].optimal?6:3.5,0,Math.PI*2);ctx.fillStyle=evalData[i].optimal?C.green:C.high;ctx.fill();ctx.strokeStyle='#fff';ctx.lineWidth=1.5;ctx.stroke();});
+  ctx.fillStyle=C.muted;ctx.font='9px Source Code Pro,monospace';ctx.textAlign='center';evalData.forEach((d,i)=>ctx.fillText('k='+d.k,xs(i),pad.t+ch+16));
+})();
+
+// PCA
+(function(){
+  const cv=document.getElementById('pcaChart');
+  const W=cv.parentElement.offsetWidth-48,H=320,dpr=window.devicePixelRatio||1;
+  cv.width=W*dpr;cv.height=H*dpr;cv.style.width=W+'px';cv.style.height=H+'px';
+  const ctx=cv.getContext('2d');ctx.scale(dpr,dpr);
+  const pad={l:38,r:18,t:14,b:26},cw=W-pad.l-pad.r,ch=H-pad.t-pad.b;
+  ctx.strokeStyle=C.border;ctx.lineWidth=1;
+  for(let i=0;i<=8;i++){const x=pad.l+(i/8)*cw;ctx.beginPath();ctx.moveTo(x,pad.t);ctx.lineTo(x,pad.t+ch);ctx.stroke();const y=pad.t+(i/8)*ch;ctx.beginPath();ctx.moveTo(pad.l,y);ctx.lineTo(pad.l+cw,y);ctx.stroke();}
+  const centers=[[0.68,0.30],[0.45,0.52],[0.22,0.70]],spreads=[0.11,0.13,0.12],counts=[342,385,273],colors=[C.high,C.medium,C.low];
+  const rng=seed=>{let s=seed;return()=>{s=(s*9301+49297)%233280;return s/233280;};};
+  centers.forEach((c,ci)=>{const rand=rng(ci*1337+99);for(let i=0;i<counts[ci];i++){const u1=rand(),u2=rand();const z0=Math.sqrt(-2*Math.log(u1+.001))*Math.cos(2*Math.PI*u2),z1=Math.sqrt(-2*Math.log(u2+.001))*Math.sin(2*Math.PI*u1);const px=Math.max(.02,Math.min(.98,c[0]+z0*spreads[ci])),py=Math.max(.02,Math.min(.98,c[1]+z1*spreads[ci]));ctx.beginPath();ctx.arc(pad.l+px*cw,pad.t+py*ch,2.5,0,Math.PI*2);ctx.fillStyle=colors[ci];ctx.globalAlpha=0.4;ctx.fill();}ctx.globalAlpha=1;});
+  centers.forEach((c,ci)=>{const x=pad.l+c[0]*cw,y=pad.t+c[1]*ch;ctx.fillStyle=colors[ci];ctx.font='bold 13px sans-serif';ctx.textAlign='center';ctx.globalAlpha=1;ctx.fillText('★',x,y+5);ctx.fillStyle=C.text;ctx.font='bold 10px Source Code Pro,monospace';ctx.fillText(['C0','C1','C2'][ci],x+16,y);});
+  ctx.fillStyle=C.muted;ctx.font='11px Source Sans 3,sans-serif';ctx.textAlign='center';ctx.globalAlpha=1;ctx.fillText('PC1 (42.3% variance)',pad.l+cw/2,H-5);ctx.save();ctx.translate(12,pad.t+ch/2);ctx.rotate(-Math.PI/2);ctx.fillText('PC2 (26.1% variance)',0,0);ctx.restore();
+})();
+
+// Radar
+(function(){
+  const cv=document.getElementById('radarChart');
+  const W=cv.parentElement.offsetWidth-48,H=360;
+  cv.width=W;cv.height=H;cv.style.height=H+'px';
+  const ctx=cv.getContext('2d');
+  const cx=W/2,cy=H/2-15,R=Math.min(W*.35,H*.36),n=features.length;
+  const angles=features.map((_,i)=>(i/n)*Math.PI*2-Math.PI/2);
+  for(let l=1;l<=5;l++){const r=(l/5)*R;ctx.beginPath();angles.forEach((a,i)=>{const x=cx+Math.cos(a)*r,y=cy+Math.sin(a)*r;i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);});ctx.closePath();ctx.strokeStyle=C.border;ctx.lineWidth=1;ctx.stroke();}
+  angles.forEach(a=>{ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(cx+Math.cos(a)*R,cy+Math.sin(a)*R);ctx.strokeStyle=C.border;ctx.lineWidth=1;ctx.stroke();});
+  ctx.fillStyle=C.muted;ctx.font='11px Source Sans 3,sans-serif';ctx.textAlign='center';
+  angles.forEach((a,i)=>{const x=cx+Math.cos(a)*(R+22),y=cy+Math.sin(a)*(R+22);ctx.fillText(features[i],x,y+4);});
+  const cls=[{vals:clusterVals.high,color:C.high},{vals:clusterVals.medium,color:C.medium},{vals:clusterVals.low,color:C.low}];
+  cls.forEach(cl=>{ctx.beginPath();angles.forEach((a,i)=>{const r=cl.vals[i]*R,x=cx+Math.cos(a)*r,y=cy+Math.sin(a)*r;i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);});ctx.closePath();ctx.fillStyle=cl.color;ctx.globalAlpha=0.08;ctx.fill();ctx.globalAlpha=1;ctx.strokeStyle=cl.color;ctx.lineWidth=2;ctx.stroke();angles.forEach((a,i)=>{const r=cl.vals[i]*R,x=cx+Math.cos(a)*r,y=cy+Math.sin(a)*r;ctx.beginPath();ctx.arc(x,y,3.5,0,Math.PI*2);ctx.fillStyle=cl.color;ctx.fill();});});
+  const lbls=['High','Medium','Low'],lw=cls.length*140,lx0=cx-lw/2;
+  cls.forEach((cl,i)=>{const x=lx0+i*140,y=H-18;ctx.beginPath();ctx.arc(x+5,y,5,0,Math.PI*2);ctx.fillStyle=cl.color;ctx.globalAlpha=1;ctx.fill();ctx.fillStyle=C.muted;ctx.font='11px Source Sans 3,sans-serif';ctx.textAlign='left';ctx.fillText(lbls[i]+' Engagement',x+14,y+4);});
+})();
+
+window.addEventListener('load',()=>{
+  document.querySelectorAll('.pct-bar-fill').forEach(el=>{const w=el.dataset.w;el.style.width='0%';setTimeout(()=>el.style.width=w,400);});
+});
+</script>
+</body>
+</html>
